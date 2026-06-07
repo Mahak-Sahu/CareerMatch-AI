@@ -50,60 +50,39 @@ const [proTip,setProTip] = useState("");
   missing: missingSkills,
 };
 const parseAISuggestion = (text) => {
+  try {
+    // Strip markdown code fences if Gemini wraps JSON in ```json ... ```
+    const clean = text.replace(/```json\n?|```/g, "").trim();
+    const parsed = JSON.parse(clean);
 
-  const getSection = (start, end) => {
-    const regex = new RegExp(
-      `${start}([\\s\\S]*?)${end}`,
-      "i"
+    setCareerSummary(parsed.careerSummary || "");
+
+    // "Recommended Career Path" card uses bestRole state
+    setBestRole(parsed.recommendedCareerPath || parsed.bestRole || "");
+
+    // Arrays — guard against Gemini returning a string instead of array
+    setStrengths(
+      Array.isArray(parsed.strengths)
+        ? parsed.strengths
+        : (parsed.strengths || "").split("\n").filter(Boolean)
     );
 
-    const match = text.match(regex);
+    setLearnNext(
+      Array.isArray(parsed.learnNext)
+        ? parsed.learnNext
+        : (parsed.learnNext || "").split("\n").filter(Boolean)
+    );
 
-    return match ? match[1].trim() : "";
-  };
+    // "Recommended Project" card uses projectIdea state
+    setProjectIdea(parsed.recommendedProject || "");
 
-  setCareerSummary(
-    getSection(
-      "Career Summary",
-      "Strengths"
-    )
-  );
+    // "Recruiter Insight" card uses proTip state
+    setProTip(parsed.recruiterInsight || parsed.proTip || "");
 
-  setStrengths(
-    getSection(
-      "Strengths",
-      "Learn Next"
-    )
-    .split("\n")
-    .filter(Boolean)
-  );
-
-  setLearnNext(
-    getSection(
-      "Learn Next",
-      "Best Role"
-    )
-    .split("\n")
-    .filter(Boolean)
-  );
-
-  setBestRole(
-    getSection(
-      "Best Role",
-      "Project Idea"
-    )
-  );
-
-  setProjectIdea(
-    getSection(
-      "Project Idea",
-      "Pro Tip"
-    )
-  );
-
-  setProTip(
-    text.split("Pro Tip")[1]?.trim() || ""
-  );
+  } catch (e) {
+    console.error("parseAISuggestion: JSON parse failed →", e.message);
+    console.log("Raw aiSuggestion received:", text);
+  }
 };
   const chartData = [
   {
@@ -223,6 +202,7 @@ if (!isLoggedIn) {
     setImprovementPlan(data.improvementPlan || []);
     setRoadmap(data.roadmap || []);
     setAiSuggestion(data.aiSuggestion);
+    console.log("RAW aiSuggestion from API:", data.aiSuggestion);
     parseAISuggestion(data.aiSuggestion);
     setResumeTips(data.resumeTips);
     setBreakdown(data.breakdown);
@@ -254,17 +234,33 @@ doc.setFont("helvetica", "normal");
 
   doc.setFontSize(12);
 
-  const cleanSuggestion = (aiSuggestion || "No suggestion available")
-  .replace(/[^\x20-\x7E\n]/g, "") // remove weird unicode
-  .replace(/\u200d/g, "")
-  .replace(/[#*_`>-]/g, "") // remove markdown
-  .replace(/\n+/g, "\n") // clean new lines
-  .trim();
+ // Reconstruct a clean text version from our parsed React state
+  const reconstructedSuggestion = `
+Career Summary
+${careerSummary}
 
-const suggestionLines = doc.splitTextToSize(
-  cleanSuggestion,
-  170
-);
+Strengths
+${strengths.join(", ")}
+
+Learn Next
+${learnNext.join(", ")}
+
+Best Role
+${bestRole}
+
+Project Idea
+${projectIdea}
+
+Pro Tip
+${proTip}
+  `.trim();
+
+  const cleanSuggestion = reconstructedSuggestion
+    .replace(/[^\x20-\x7E\n]/g, "")
+    .replace(/\n+/g, "\n")
+    .trim();
+
+  const suggestionLines = doc.splitTextToSize(cleanSuggestion, 170);
 
 doc.setFontSize(12);
 doc.setLineHeightFactor(1.8);
@@ -1472,29 +1468,73 @@ return (
 >
 <h2 className="leading-normal py-3 px-4 inline-block rounded-2xl text-4xl font-extrabold mb-8 bg-gradient-to-r from-green-300 to-emerald-400 text-transparent bg-clip-text drop-shadow-[0_0_18px_rgba(74,222,128,0.6)]">      🤖 AI Suggestion
     </h2>
-    <div
-className="
-mb-6
+   <div
+  className="
+  bg-black/15
+  border border-green-500/20
+  rounded-3xl
+  p-8
+  mb-8
+  "
+>
+  <h3
+    className="
+    text-2xl
+    font-bold
+    text-green-300
+    mb-5
+    flex
+    items-center
+    gap-3
+    "
+  >
+    🎯 Recommended Career Path
+  </h3>
+
+  <p
+    className="
+    text-xl
+    text-white
+    leading-relaxed
+    mb-4
+    "
+  >
+    {bestRole}
+  </p>
+
+  <p
+    className="
+    text-gray-400
+    italic
+    text-base
+    "
+  >
+    Best role based on your resume analysis
+  </p>
+</div>
+<div className="
 bg-black/20
-border border-green-500/20
+border border-cyan-500/20
 rounded-2xl
 p-6
-"
->
+mb-6
+">
+  <h3 className="text-2xl font-bold text-cyan-300 mb-4">
+    📄 Career Summary
+  </h3>
 
-<h3 className="text-2xl font-bold text-green-300">
-🎯 Recommended Career Path
-</h3>
-<p>{bestRole}</p>
-<p className="text-gray-400 mt-2">
-Best role based on your resume analysis
-</p>
-
+  <p className="text-gray-200 leading-8">
+    {careerSummary}
+  </p>
 </div>
     
-<div className="bg-white/5 border border-white/10 rounded-3xl p-6 mt-8">
+<div className=" mt-8 bg-black/20
+border border-cyan-500/20
+rounded-2xl
+p-6
+mb-6">
 
-  <h2 className="text-3xl font-bold text-green-300 mb-8">
+  <h2 className="text-2xl font-bold text-green-300 mb-8">
     💡 Resume Improvement Tips
   </h2>
 
@@ -1583,9 +1623,15 @@ Best role based on your resume analysis
       👨‍💼 Recruiter Insight
     </h3>
 
-    <p className="text-gray-200">
-      {proTip}
-    </p>
+    <div className="
+bg-purple-500/10
+border-l-4
+border-purple-400
+rounded-xl
+p-4
+">
+ {proTip}
+</div>
   </div>
 
 </div>
