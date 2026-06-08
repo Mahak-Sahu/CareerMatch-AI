@@ -7,7 +7,6 @@ import ReactMarkdown from "react-markdown";
 import { motion } from "framer-motion";
 import { useNavigate } from "react-router-dom";
 import Navbar from "../components/Navbar";
-
 import {
   PieChart,
   Pie,
@@ -43,6 +42,7 @@ const [learnNext,setLearnNext] = useState([]);
 const [bestRole,setBestRole] = useState("");
 const [projectIdea,setProjectIdea] = useState("");
 const [proTip,setProTip] = useState("");
+
 
     const skillData = {
   matching: matchingSkills,
@@ -479,15 +479,15 @@ console.log("learnNext =", learnNext);
     📈 Improvement Plan
   </button>
   <button
-    onClick={() => setActiveSection("roadmap")}
-    className={`px-6 py-3 rounded-xl font-semibold transition-all duration-300 hover:scale-105 ${
-      activeSection === "roadmap"
-        ? "bg-gradient-to-r from-green-400 to-emerald-500 text-black shadow-lg shadow-green-500/30 scale-105"
-        : "bg-zinc-800/80 text-gray-300 hover:bg-zinc-700 hover:text-white"
-    }`}
-  >
-    🚀 Roadmap
-  </button>
+  onClick={() => navigate("/roadmaps")}
+  className={`px-6 py-3 rounded-xl font-semibold transition-all duration-300 hover:scale-105 ${
+    activeSection === "roadmaps"
+      ? "bg-gradient-to-r from-green-400 to-emerald-500 text-black shadow-lg shadow-green-500/30 scale-105"
+      : "bg-zinc-800/80 text-gray-300 hover:bg-zinc-700 hover:text-white"
+  }`}
+>
+  🚀 Roadmap
+</button>
 
   <button
     onClick={() => setActiveSection("jobs")}
@@ -1237,9 +1237,6 @@ justify-center
 </div>
 
 )}
-
-
-
 
  
 
