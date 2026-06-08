@@ -10,6 +10,8 @@ import {
 import Home from "./pages/Home";
 import Login from "./pages/Login";
 import Signup from "./pages/Signup";
+import RoadmapsPage from "./pages/RoadmapsPage";
+import RoadmapDetailsPage from "./pages/RoadmapDetailsPage";
 
 function App() {
 
@@ -24,7 +26,12 @@ function App() {
         <Route path="/login" element={<Login />} />
 
         <Route path="/signup" element={<Signup />} />
+        <Route path="/roadmaps" element={<RoadmapsPage />} />
 
+<Route
+  path="/roadmaps/:slug"
+  element={<RoadmapDetailsPage />}
+/>
       </Routes>
 
     </BrowserRouter>

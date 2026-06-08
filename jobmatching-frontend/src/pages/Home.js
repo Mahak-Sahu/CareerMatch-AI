@@ -434,15 +434,16 @@ console.log("learnNext =", learnNext);
      <div className="max-w-5xl mx-auto mb-10">
   <div
     className="
-    flex flex-wrap justify-center gap-12
+    flex justify-center items-center gap-4
+    overflow-x-auto
+    whitespace-nowrap
     p-4
-    min-w-[180px]
     rounded-3xl
     bg-white/5
     backdrop-blur-xl
     border border-cyan-500/20
     shadow-[0_0_30px_rgba(34,211,238,0.15)]
-    "
+  "
   >
 
   <button
@@ -467,6 +468,16 @@ console.log("learnNext =", learnNext);
     📋 Skills
   </button>
 
+  <button
+    onClick={() => setActiveSection("roadmap")}
+    className={`px-6 py-3 rounded-xl font-semibold transition-all duration-300 hover:scale-105 ${
+      activeSection === "roadmap"
+        ? "bg-gradient-to-r from-green-400 to-emerald-500 text-black shadow-lg shadow-green-500/30 scale-105"
+        : "bg-zinc-800/80 text-gray-300 hover:bg-zinc-700 hover:text-white"
+    }`}
+  >
+    📈 Improvement Plan
+  </button>
   <button
     onClick={() => setActiveSection("roadmap")}
     className={`px-6 py-3 rounded-xl font-semibold transition-all duration-300 hover:scale-105 ${
