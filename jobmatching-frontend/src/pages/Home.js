@@ -1,7 +1,8 @@
 import jsPDF from "jspdf";
 import React, {
   useState,
-  useEffect
+  useEffect,
+  useRef
 } from "react";
 import ReactMarkdown from "react-markdown";
 import { motion } from "framer-motion";
@@ -25,7 +26,12 @@ function Home() {
   const [atsScore, setAtsScore] = useState(0);
   const [matchingSkills, setMatchingSkills] = useState([]);
   const [missingSkills, setMissingSkills] = useState([]);
-  const [breakdown, setBreakdown] = useState(null);
+  const [breakdown, setBreakdown] = useState({
+  matching: 0,
+  missing: 0,
+  bonus: 0
+});
+const fileInputRef = useRef(null);
   const [similarMatches, setSimilarMatches] = useState([]);
   const [aiSuggestion, setAiSuggestion] = useState("");
   const [resumeTips, setResumeTips] = useState("");
@@ -42,7 +48,47 @@ const [learnNext,setLearnNext] = useState([]);
 const [bestRole,setBestRole] = useState("");
 const [projectIdea,setProjectIdea] = useState("");
 const [proTip,setProTip] = useState("");
+const [uploadedFileName, setUploadedFileName] = useState("");
 
+useEffect(() => {
+  
+  const savedAnalysis = localStorage.getItem("careerMatchAnalysis");
+  if (!savedAnalysis) return;
+
+  let data;
+  try {
+    data = JSON.parse(savedAnalysis);
+  } catch (e) {
+    localStorage.removeItem("careerMatchAnalysis");
+    return;
+  }
+
+  if (data.resumeText && data.resumeText.trim() !== "") {
+    setJobs(data.jobs || []);
+    setAtsScore(data.atsScore || 0);
+    setMatchingSkills(data.matchingSkills || []);
+    setMissingSkills(data.missingSkills || []);
+    setSimilarMatches(data.similarMatches || []);       // ← was missing
+    setBreakdown(data.breakdown || { matching: 0, missing: 0, bonus: 0 }); // ← was missing
+    setImprovementPlan(data.improvementPlan || []);
+    setRoadmap(data.roadmap || []);
+    setResumeText(data.resumeText || "");
+    setAiSuggestion(data.aiSuggestion || "");
+    setResumeTips(data.resumeTips || "");
+    setUploadedFileName(data.uploadedFileName || "");
+    // ✅ EXACT FIX: Jab purana data navigate hoke wapas aane par restore hoga, toh Jobs section khulega
+    setActiveSection("jobs");
+
+    // ─── PRIMARY FIX ──────────────────────────────────────────
+    // parseAISuggestion() is the ONLY function that populates
+    // careerSummary, bestRole, strengths, learnNext, projectIdea, proTip.
+    // Without this call, all AI cards render empty after navigation.
+    if (data.aiSuggestion) {
+      parseAISuggestion(data.aiSuggestion);
+    }
+    // ──────────────────────────────────────────────────────────
+  }
+}, []); // eslint-disable-line react-hooks/exhaustive-deps
 
     const skillData = {
   matching: matchingSkills,
@@ -54,6 +100,11 @@ const parseAISuggestion = (text) => {
     // Strip markdown code fences if Gemini wraps JSON in ```json ... ```
     const clean = text.replace(/```json\n?|```/g, "").trim();
     const parsed = JSON.parse(clean);
+    console.log("PARSED =", parsed);
+console.log("careerSummary =", parsed.careerSummary);
+console.log("strengths =", parsed.strengths);
+console.log("learnNext =", parsed.learnNext);
+console.log("bestRole =", parsed.bestRole);
 
     setCareerSummary(parsed.careerSummary || "");
 
@@ -110,8 +161,7 @@ roadmap.reduce(
  0
 );
 
-const potentialATS =
-atsScore + totalGain;
+const potentialATS = Math.min(100, atsScore + totalGain);
 
 useEffect(() => {
 
@@ -194,6 +244,25 @@ if (!isLoggedIn) {
 
     const data = await response.json();
 
+    localStorage.setItem(
+  "careerMatchAnalysis",
+  JSON.stringify({
+    jobs: data.jobs,
+    atsScore: data.atsScore,
+    matchingSkills: data.matchingSkills,
+    missingSkills: data.missingSkills,
+    similarMatches: data.similarMatches,
+    improvementPlan: data.improvementPlan,
+    roadmap: data.roadmap,
+    aiSuggestion: data.aiSuggestion,   // ← raw JSON string. parseAISuggestion
+                                        //   will re-parse this on restore.
+    resumeTips: data.resumeTips,
+    breakdown: data.breakdown,
+    resumeText,
+    uploadedFileName: resumeFile?.name || ""
+  })
+);
+
     setJobs(data.jobs);
     setAtsScore(data.atsScore);
     setMatchingSkills(data.matchingSkills || []);
@@ -202,11 +271,14 @@ if (!isLoggedIn) {
     setImprovementPlan(data.improvementPlan || []);
     setRoadmap(data.roadmap || []);
     setAiSuggestion(data.aiSuggestion);
-    console.log("RAW aiSuggestion from API:", data.aiSuggestion);
+    // parseAISuggestion handles careerSummary, bestRole, strengths,
+    // learnNext, projectIdea, proTip — no need to set them separately here.
     parseAISuggestion(data.aiSuggestion);
     setResumeTips(data.resumeTips);
     setBreakdown(data.breakdown);
-    
+    setUploadedFileName(data.uploadedFileName || "");
+    // ✅ EXACT FIX: Naye analysis par view automatically Dashboard par switch ho jayega
+        setActiveSection("dashboard");
 
   } catch (error) {
 
@@ -215,6 +287,46 @@ if (!isLoggedIn) {
   }
 
   setLoading(false);
+};  
+
+const resetAnalysis = () => {
+
+  // Local Storage Clear
+  localStorage.removeItem("careerMatchAnalysis");
+
+  // Resume
+  setResumeFile(null);
+  setResumeText("");
+  setUploadedFileName("");
+  // ATS & Analysis
+  setJobs([]);
+  setAtsScore(0);
+  setMatchingSkills([]);
+  setMissingSkills([]);
+  setImprovementPlan([]);
+  setRoadmap([]);
+  setAiSuggestion("");
+  setResumeTips("");
+
+  // Breakdown
+  setBreakdown({
+    matching: 0,
+    missing: 0,
+    bonus: 0,
+  });
+
+  // AI Suggestion Cards
+  setCareerSummary("");
+  setStrengths([]);
+  setLearnNext([]);
+  setBestRole("");
+  setProjectIdea("");
+  setProTip("");
+
+  if (fileInputRef.current) {
+  fileInputRef.current.value = "";
+}
+
 };
   
   const downloadReport = () => {
@@ -328,6 +440,27 @@ console.log("learnNext =", learnNext);
   return (
   <div className="min-h-screen bg-gradient-to-br from-black via-gray-900 to-black text-white p-6">
     <Navbar />
+    <button
+  onClick={resetAnalysis}
+  className="
+    flex items-center gap-2
+    px-5 py-3
+    rounded-xl
+    font-semibold
+    text-cyan-300
+    mt-6
+    border border-cyan-500/40
+    bg-white/5
+    backdrop-blur-md
+    hover:bg-cyan-500/10
+    hover:border-cyan-400
+    hover:text-cyan-200
+    transition-all duration-300
+    hover:shadow-[0_0_25px_rgba(34,211,238,0.5)]
+  "
+>
+  🔄 Refresh
+</button>
     <motion.div className="max-w-5xl mx-auto">
       {/* Header */}
       <div className="text-center mb-10">
@@ -351,9 +484,15 @@ console.log("learnNext =", learnNext);
   className="overflow-hidden group relative overflow-hidden bg-white/10 backdrop-blur-xl p-6 rounded-3xl border border-white/10 shadow-xl transition-all duration-300"
 >
         <input
+          ref={fileInputRef}
           type="file"
           accept=".pdf"
-          onChange={(e) => setResumeFile(e.target.files[0])}
+          onChange={(e) => {
+            localStorage.removeItem("careerMatchAnalysis");
+            const file = e.target.files[0];
+    setResumeFile(file);
+    setUploadedFileName(file ? file.name : ""); // ✅ Instantly updates text on new selection
+  }}
           className="mb-4 w-full text-sm text-gray-300
                      file:mr-4 file:py-2 file:px-4
                      file:rounded-xl file:border-0
@@ -362,6 +501,11 @@ console.log("learnNext =", learnNext);
                      file:text-green-300
                      hover:file:bg-green-500/30"
         />
+        {uploadedFileName && (
+  <p className="text-green-300 text-sm ">
+    📄 {uploadedFileName}
+  </p>
+)}
         <textarea
           className="w-full p-5 mb-6 rounded-2xl bg-[#0f172a] text-white border border-green-400/20 focus:outline-none focus:ring-2 focus:ring-green-400 focus:border-green-400 focus:shadow-[0_0_15px_rgba(74,222,128,0.35)] resize-none placeholder:text-gray-500"
           rows="6"
@@ -583,7 +727,7 @@ console.log("learnNext =", learnNext);
   <div className="bg-black/20 rounded-xl p-4 text-center">
     <p className="text-gray-400 text-sm">JD Match</p>
     <p className="text-cyan-300 font-bold text-2xl">
-      {(breakdown.matching/50)*100}%
+      {((breakdown?.matching || 0) / 50) * 100}%
     </p>
   </div>
 
@@ -627,28 +771,28 @@ console.log("learnNext =", learnNext);
     {[
       {
         label: "🎯 JD Match",
-        value: breakdown.matching,
+        value: breakdown?.matching || 0,
         max: 50,
         color: "from-green-400 to-green-600"
       },
 
       {
         label: "📁 Projects",
-        value: breakdown.similar,
+        value: breakdown?.similar || 0,
         max: 10,
         color: "from-blue-400 to-blue-600"
       },
 
       {
         label: "🔗 GitHub + LinkedIn",
-        value: breakdown.keyword,
+        value: breakdown?.keyword  || 0,
         max: 10,
         color: "from-purple-400 to-purple-600"
       },
 
       {
         label: "🎓 Education + Quality",
-        value: breakdown.quality,
+        value: breakdown?.quality || 0,
         max: 30,
         color: "from-yellow-400 to-orange-500"
       }

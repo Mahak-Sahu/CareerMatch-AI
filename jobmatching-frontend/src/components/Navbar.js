@@ -39,12 +39,12 @@ function Navbar() {
       
       <div className="flex items-center gap-4 relative">
 
-  {/* Dashboard Button */}
+  {/* History Button */}
   <button
     onClick={() => navigate("/dashboard")}
     className="px-5 py-2 rounded-xl bg-cyan-600 hover:bg-cyan-500 text-white font-semibold transition"
   >
-    Dashboard
+    History
   </button>
 
   {/* Profile Circle */}

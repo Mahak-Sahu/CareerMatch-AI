@@ -1,11 +1,13 @@
 import React, { useEffect, useState } from "react";
 import axios from "axios";
+import { useNavigate } from "react-router-dom";
 import Navbar from "../components/Navbar";
 
 function Dashboard() {
   const [openJD, setOpenJD] = useState(null);
 const [openResume, setOpenResume] = useState(null);
   const [history, setHistory] = useState([]);
+  const navigate = useNavigate();
 
   const email = localStorage.getItem("userEmail");
 
@@ -37,12 +39,58 @@ const [openResume, setOpenResume] = useState(null);
     <div className="min-h-screen bg-black text-white">
 
       <Navbar />
+      
+      <div className="flex justify-between items-center mb-8">
+  
+  <button
+    onClick={() => navigate("/")}
+    className="
+      flex items-center gap-2
+    px-5 py-3
+    rounded-xl
+    font-semibold
+    text-cyan-300
+    mt-6
+    border border-cyan-500/40
+    bg-white/5
+    backdrop-blur-md
+    hover:bg-cyan-500/10
+    hover:border-cyan-400
+    hover:text-cyan-200
+    transition-all duration-300
+    hover:shadow-[0_0_25px_rgba(34,211,238,0.5)]
+    "
+  >
+    ← Back To Home
+  </button>
+
+</div>
 
       <div className="max-w-6xl mx-auto p-8">
 
-        <h1 className="text-5xl font-extrabold mb-10 text-center bg-gradient-to-r from-green-300 to-blue-500 bg-clip-text text-transparent">
-          📊 Resume Dashboard
-        </h1>
+        <div className="text-center mb-14 pt-6">
+  <h1
+    className="
+      inline-block
+      text-4xl md:text-6xl
+      font-extrabold
+      leading-normal
+      pb-3
+
+      bg-gradient-to-r
+      from-cyan-300
+      via-cyan-400
+      to-blue-500
+
+      bg-clip-text
+      text-transparent
+
+      drop-shadow-[0_0_25px_rgba(34,211,238,0.45)]
+    "
+  >
+    📊 Resume History
+  </h1>
+</div>
 
         {
           history.length === 0 ? (
